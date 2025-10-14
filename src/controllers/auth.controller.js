@@ -39,7 +39,7 @@ export const login = async (req, res) => {
     if(!isMatch){
       return res.status(400).json({message: "Tài Khoản hoặc mật khẩu không đúng"});
     }
-    const token = jwt.sign({id: user.id}, "123456", {expiresIn: "2h"});
+    const token = jwt.sign({id: user.id}, process.env.JWT_SECRET || "123456", {expiresIn: "2h"});
     user.password = undefined;
     return res.status(200).json({
       message: "Đăng nhập thành công", token, data: user})

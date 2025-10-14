@@ -16,6 +16,9 @@ export const registerSchema = Joi.object({
     'string.empty': 'Password không được để trống',
     'any.required': 'Password là bắt buộc',
   }),
+  avatar: Joi.string().uri().allow('').optional().messages({
+    'string.uri': 'Avatar phải là một URL hợp lệ',
+  }),
 });
 
 export const loginSchema = Joi.object({
