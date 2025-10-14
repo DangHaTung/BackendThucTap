@@ -12,6 +12,9 @@ import {
   inviteMemberByEmail,
   removeMember,
   leaveBoard,
+  getMyInvitations,
+  acceptInvitation,
+  rejectInvitation,
 } from "../controllers/board.controller.js";
 
 const router = express.Router();
@@ -27,6 +30,11 @@ router.post("/boards/:id/invite", validate(inviteMemberSchema), inviteMember);
 router.post("/boards/:id/invite-by-email", validate(inviteByEmailSchema), inviteMemberByEmail);
 router.post("/boards/:id/remove-member", validate(removeMemberSchema), removeMember);
 router.post("/boards/:id/leave", validate(leaveBoardSchema), leaveBoard);
+
+// Invitation routes
+router.get("/invitations", getMyInvitations);
+router.post("/invitations/:invitationId/accept", acceptInvitation);
+router.post("/invitations/:invitationId/reject", rejectInvitation);
 
 export default router;
 
