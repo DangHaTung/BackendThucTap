@@ -29,8 +29,8 @@ export const createCard = async (req, res) => {
       listId,
       position: nextPosition,
       createdBy: userId,
+      labels: req.body.labels || [],
       dueDate: req.body.dueDate || null,
-      color: req.body.color || '#ffffff',
     });
     return res.status(201).json(card);
   } catch (err) {
@@ -50,7 +50,7 @@ export const updateCard = async (req, res) => {
     const board = await Board.findOne({ _id: list.boardId, $or: [{ owner: userId }, { members: userId }] });
     if (!board) return res.status(403).json({ message: "Không có quyền" });
     const update = {};
-    ["title", "description", "assignees", "dueDate", "color"].forEach((k) => {
+    ["title", "description", "labels", "assignees", "dueDate"].forEach((k) => {
       if (req.body[k] !== undefined) update[k] = req.body[k];
     });
     const card = await Card.findByIdAndUpdate(cardId, { $set: update }, { new: true });

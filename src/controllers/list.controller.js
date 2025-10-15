@@ -19,12 +19,7 @@ export const createList = async (req, res) => {
     if (!board) return res.status(404).json({ message: "Board không tồn tại hoặc không có quyền" });
     const maxPos = await List.find({ boardId }).sort({ position: -1 }).limit(1);
     const nextPosition = maxPos.length ? (maxPos[0].position || 0) + 1 : 0;
-    const list = await List.create({ 
-      title: req.body.title || "New List", 
-      boardId, 
-      position: nextPosition,
-      color: req.body.color || '#f3f4f6'
-    });
+    const list = await List.create({ title: req.body.title || "New List", boardId, position: nextPosition });
     return res.status(201).json(list);
   } catch (err) {
     return res.status(500).json({ message: err.message });
@@ -34,18 +29,9 @@ export const createList = async (req, res) => {
 export const updateList = async (req, res) => {
   try {
     const { boardId, listId } = req.params;
-    const updateData = {};
-    
-    if (req.body.title !== undefined) {
-      updateData.title = req.body.title;
-    }
-    if (req.body.color !== undefined) {
-      updateData.color = req.body.color;
-    }
-    
     const list = await List.findOneAndUpdate(
       { _id: listId, boardId },
-      { $set: updateData },
+      { $set: { title: req.body.title } },
       { new: true }
     );
     if (!list) return res.status(404).json({ message: "Không tìm thấy list" });
@@ -65,6 +51,5 @@ export const deleteList = async (req, res) => {
     return res.status(500).json({ message: err.message });
   }
 };
-
 
 

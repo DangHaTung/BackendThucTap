@@ -19,7 +19,9 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: [true, "Mật khẩu là bắt buộc"],
       select: false,
+      
     },
+
     avatar: {
       type: String,
       default: "",

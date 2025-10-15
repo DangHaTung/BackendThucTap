@@ -9,16 +9,6 @@ const cardSchema = new mongoose.Schema({
     assignees: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
     labels: [String],
     dueDate: { type: Date },
-    color: { 
-      type: String, 
-      default: '#ffffff',
-      validate: {
-        validator: function(v) {
-          return /^#([0-9a-fA-F]{3}){1,2}$/.test(v);
-        },
-        message: 'Color must be a valid hex color'
-      }
-    },
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now }
 },{ 
