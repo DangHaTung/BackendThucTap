@@ -8,7 +8,7 @@ export const authenticate = (req, res, next) => {
   }
   try {
     const payload = jwt.verify(token, process.env.JWT_SECRET || "123456");
-    req.user = { id: payload.id };
+    req.user = { id: payload.id, username: payload.username };
     return next();
   } catch (err) {
     return res.status(401).json({ message: "Token không hợp lệ hoặc đã hết hạn" });

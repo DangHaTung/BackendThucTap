@@ -8,8 +8,8 @@ const router = express.Router({ mergeParams: true });
 
 router.use(authenticate);
 
-router.get("/cards/:cardId/comments", getComments);
-router.post("/cards/:cardId/comments", validate(commentCreateSchema), createComment);
+router.get("/comments/:cardId", getComments);
+router.post("/comments/:cardId", validate(commentCreateSchema), createComment);
 router.put("/comments/:commentId", validate(commentMutateSchema), updateComment);
 router.delete("/comments/:commentId", deleteComment);
 
