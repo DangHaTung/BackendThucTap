@@ -6,6 +6,7 @@ import authRouter from './routers/auth.router.js'
 import boardRouter from './routers/board.router.js'
 import listRouter from './routers/list.router.js'
 import cardRouter from './routers/card.router.js'
+import commentRouter from './routers/comment.router.js'
 
 dotenv.config()
 
@@ -25,6 +26,7 @@ app.use("/api", authRouter)
 app.use("/api", boardRouter)
 app.use("/api", listRouter)
 app.use("/api", cardRouter)
+app.use("/api", commentRouter)
 
 
 

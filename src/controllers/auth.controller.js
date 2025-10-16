@@ -79,3 +79,39 @@ export const login = async (req, res) => {
     return res.status(500).json({ message: error.message });
   }
 };
+
+// ==================== ME (GET CURRENT USER) ====================
+export const me = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select("_id username email avatar createdAt updatedAt");
+    if (!user) return res.status(404).json({ message: "Không tìm thấy người dùng" });
+    return res.json(user);
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
+
+// ==================== UPDATE ME ====================
+export const updateMe = async (req, res) => {
+  try {
+    const { username, avatar, password } = req.body;
+    const updates = {};
+    if (username !== undefined) updates.username = username;
+    if (avatar !== undefined) updates.avatar = avatar;
+
+    if (password) {
+      const hashPassword = await bcrypt.hash(password, 10);
+      updates.password = hashPassword;
+    }
+
+    const updated = await User.findByIdAndUpdate(
+      req.user.id,
+      { $set: updates },
+      { new: true, select: "_id username email avatar createdAt updatedAt" }
+    );
+    if (!updated) return res.status(404).json({ message: "Không tìm thấy người dùng" });
+    return res.json(updated);
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
