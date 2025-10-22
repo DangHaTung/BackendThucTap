@@ -30,3 +30,21 @@ export const loginSchema = Joi.object({
     'any.required': 'Password là bắt buộc',
   }),
 });
+
+export const updateMeSchema = Joi.object({
+  body: Joi.object({
+    username: Joi.string().min(3).max(30).optional(),
+    avatar: Joi.string().uri().allow('').optional(),
+    password: Joi.string().min(6).optional(),
+    confirmPassword: Joi.string().valid(Joi.ref('password')).when('password', {
+      is: Joi.exist(),
+      then: Joi.required(),
+      otherwise: Joi.forbidden()
+    }).messages({
+      'any.only': 'Xác nhận mật khẩu không khớp',
+      'any.required': 'Vui lòng xác nhận mật khẩu'
+    })
+  }).required(),
+  params: Joi.object({}).optional(),
+  query: Joi.object({}).optional()
+});
