@@ -13,6 +13,37 @@ export const getMyBoards = async (req, res) => {
   }
 };
 
+// Lấy boards mà user là owner
+export const getOwnedBoards = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const boards = await Board.find({ owner: userId })
+      .populate('owner', 'username email avatar')
+      .populate('members', 'username email avatar')
+      .sort({ updatedAt: -1 });
+    return res.json(boards);
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
+  }
+};
+
+// Lấy boards mà user là member (không phải owner)
+export const getJoinedBoards = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const boards = await Board.find({ 
+      members: userId, 
+      owner: { $ne: userId } 
+    })
+      .populate('owner', 'username email avatar')
+      .populate('members', 'username email avatar')
+      .sort({ updatedAt: -1 });
+    return res.json(boards);
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
+  }
+};
+
 export const createBoard = async (req, res) => {
   try {
     const userId = req.user.id;
@@ -33,7 +64,7 @@ export const getBoardById = async (req, res) => {
     const board = await Board.findOne({ _id: req.params.id, $or: [{ owner: userId }, { members: userId }] })
       .populate('owner', 'username email avatar')
       .populate('members', 'username email avatar');
-    if (!board) return res.status(404).json({ message: "Không tìm thấy board" });
+    if (!board) return res.status(404).json({ message: "Không tìm thấy Bảng công việc" });
     return res.json(board);
   } catch (err) {
     return res.status(500).json({ message: err.message });
@@ -52,7 +83,7 @@ export const updateBoard = async (req, res) => {
     });
     
     if (!board) {
-      return res.status(404).json({ message: "Không tìm thấy board hoặc không có quyền truy cập" });
+      return res.status(404).json({ message: "Không tìm thấy Bảng công việc hoặc không có quyền truy cập" });
     }
     
     // Cập nhật tiêu đề board
@@ -77,7 +108,7 @@ export const deleteBoard = async (req, res) => {
     
     // Chỉ owner mới có thể xóa board
     const removed = await Board.findOneAndDelete({ _id: boardId, owner: userId });
-    if (!removed) return res.status(404).json({ message: "Không tìm thấy board hoặc không có quyền xóa" });
+    if (!removed) return res.status(404).json({ message: "Không tìm thấy Bảng công việc hoặc không có quyền xóa" });
     return res.status(204).end();
   } catch (err) {
     console.error('Error in deleteBoard:', err);
@@ -89,13 +120,13 @@ export const inviteMember = async (req, res) => {
   try {
     const userId = req.user.id;
     const { memberId } = req.body;
-    if (!memberId) return res.status(400).json({ message: "Thiếu memberId" });
+    if (!memberId) return res.status(400).json({ message: "Thiếu mã thành viên" });
     const board = await Board.findOneAndUpdate(
       { _id: req.params.id, owner: userId },
       { $addToSet: { members: memberId } },
       { new: true }
     );
-    if (!board) return res.status(404).json({ message: "Không tìm thấy hoặc không có quyền" });
+    if (!board) return res.status(404).json({ message: "Không tìm thấy Bảng công việc hoặc không có quyền truy cập" });
     return res.json(board);
   } catch (err) {
     return res.status(500).json({ message: err.message });
@@ -115,18 +146,18 @@ export const inviteMemberByEmail = async (req, res) => {
     });
     
     if (!board) {
-      return res.status(404).json({ message: "Không tìm thấy board hoặc không có quyền truy cập" });
+      return res.status(404).json({ message: "Không tìm thấy Bảng công việc hoặc không có quyền truy cập" });
     }
     
     // Kiểm tra email có tồn tại không
     const target = await User.findOne({ email });
     if (!target) {
-      return res.status(404).json({ message: "Email không tồn tại trong hệ thống" });
+      return res.status(404).json({ message: "Email không tồn tại trong hệ thống. Vui lòng đăng ký tài khoản trước" });
     }
     
     // Kiểm tra user đã là member chưa
     if (board.members.includes(target._id)) {
-      return res.status(400).json({ message: "Người này đã là thành viên của board" });
+      return res.status(400).json({ message: "Người này đã là thành viên của Bảng công việc" });
     }
     
     // Kiểm tra đã có lời mời pending chưa
@@ -137,7 +168,7 @@ export const inviteMemberByEmail = async (req, res) => {
     });
     
     if (existingInvitation) {
-      return res.status(400).json({ message: "Đã có lời mời đang chờ phản hồi cho email này" });
+      return res.status(400).json({ message: "Đã có lời mời đang chờ phản hồi cho email này. Vui lòng chờ hoặc từ chối lời mời trước" });
     }
     
     // Tạo lời mời mới
@@ -147,11 +178,11 @@ export const inviteMemberByEmail = async (req, res) => {
       inviteeEmail: email,
       inviteeId: target._id,
       status: "pending",
-      message: `Bạn được mời tham gia board "${board.title}"`
+      message: `Bạn được mời tham gia Bảng công việc "${board.title}"`
     });
     
     return res.json({
-      message: `Đã gửi lời mời đến ${email}. Họ cần chấp nhận để tham gia board.`,
+      message: `Đã gửi lời mời đến ${email}. Họ cần chấp nhận để tham gia Bảng công việc.`,
       invitation: invitation
     });
   } catch (err) {
@@ -169,17 +200,17 @@ export const removeMember = async (req, res) => {
     // Kiểm tra quyền: chỉ owner hoặc member của board mới có thể xóa member
     const board = await Board.findOne({ _id: boardId, $or: [{ owner: userId }, { members: userId }] });
     if (!board) {
-      return res.status(404).json({ message: "Không tìm thấy board hoặc không có quyền" });
+      return res.status(404).json({ message: "Không tìm thấy Bảng công việc hoặc không có quyền truy cập" });
     }
     
     // Không cho phép xóa chính mình
     if (String(memberId) === String(userId)) {
-      return res.status(400).json({ message: "Bạn không thể xóa chính mình khỏi board" });
+      return res.status(400).json({ message: "Bạn không thể xóa chính mình khỏi Bảng công việc" });
     }
     
     // Không cho phép member xóa owner
     if (String(board.owner) === String(memberId) && String(board.owner) !== String(userId)) {
-      return res.status(400).json({ message: "Chỉ owner mới có thể xóa owner khỏi board" });
+      return res.status(400).json({ message: "Chỉ owner mới có thể xóa owner khỏi Bảng công việc" });
     }
     
     const updatedBoard = await Board.findOneAndUpdate(
@@ -200,9 +231,9 @@ export const leaveBoard = async (req, res) => {
     const boardId = req.params.id;
     // không cho owner leave nếu không có owner mới
     const board = await Board.findById(boardId);
-    if (!board) return res.status(404).json({ message: "Không tìm thấy board" });
+    if (!board) return res.status(404).json({ message: "Không tìm thấy Bảng công việc" });
     if (String(board.owner) === String(userId)) {
-      return res.status(400).json({ message: "Owner không thể rời board. Hãy chuyển quyền hoặc xóa board." });
+      return res.status(400).json({ message: "Owner không thể rời Bảng công việc. Hãy chuyển quyền hoặc xóa Bảng công việc." });
     }
     const updated = await Board.findOneAndUpdate(
       { _id: boardId },
@@ -309,6 +340,106 @@ export const rejectInvitation = async (req, res) => {
     });
   } catch (err) {
     console.error('Error in rejectInvitation:', err);
+    return res.status(500).json({ message: err.message });
+  }
+};
+
+// Thêm admin cho board (chỉ owner mới có thể)
+export const promoteToAdmin = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { memberId } = req.body;
+    const boardId = req.params.id;
+    
+    if (!memberId) {
+      return res.status(400).json({ message: "Thiếu mã thành viên" });
+    }
+    
+    // Chỉ owner mới có thể promote admin
+    const board = await Board.findOne({ _id: boardId, owner: userId });
+    if (!board) {
+      return res.status(403).json({ message: "Chỉ owner mới có thể thêm admin cho Bảng công việc" });
+    }
+    
+    // Kiểm tra member có trong board không
+    const isMember = board.members.some(m => String(m) === String(memberId));
+    if (!isMember) {
+      return res.status(400).json({ message: "Người này chưa phải là thành viên của Bảng công việc" });
+    }
+    
+    // Không cho phép owner tự promote mình
+    if (String(memberId) === String(userId)) {
+      return res.status(400).json({ message: "Owner không cần promote làm admin cho Bảng công việc" });
+    }
+    
+    // Kiểm tra đã là admin chưa
+    const isAlreadyAdmin = board.admins && board.admins.some(a => String(a) === String(memberId));
+    if (isAlreadyAdmin) {
+      return res.status(400).json({ message: "Người này đã là admin cho Bảng công việc" });
+    }
+    
+    // Thêm vào admins
+    const updatedBoard = await Board.findOneAndUpdate(
+      { _id: boardId },
+      { $addToSet: { admins: memberId } },
+      { new: true }
+    ).populate('owner', 'username email avatar')
+     .populate('members', 'username email avatar')
+     .populate('admins', 'username email avatar');
+    
+    return res.json(updatedBoard);
+  } catch (err) {
+    console.error('Error in promoteToAdmin:', err);
+    return res.status(500).json({ message: err.message });
+  }
+};
+
+// Xóa admin khỏi board (chỉ owner mới có thể)
+export const removeAdmin = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { adminId } = req.body;
+    const boardId = req.params.id;
+    
+    if (!adminId) {
+      return res.status(400).json({ message: "Thiếu adminId" });
+    }
+    
+    // Get board
+    const board = await Board.findById(boardId);
+    if (!board) {
+      return res.status(404).json({ message: "Bảng không tồn tại" });
+    }
+    
+    // Chỉ owner mới có thể remove admin (admin cao nhất)
+    const isBoardOwner = String(board.owner) === userId;
+    if (!isBoardOwner) {
+      return res.status(403).json({ message: "Chỉ chủ sở hữu Bảng công việc (admin cao nhất) mới có thể xóa quyền admin" });
+    }
+    
+    // Không cho phép xóa chính mình khỏi admins
+    if (String(adminId) === String(userId)) {
+      return res.status(400).json({ message: "Bạn không thể xóa chính mình khỏi admins" });
+    }
+    
+    // Kiểm tra admin này có tồn tại trong admins không
+    const isInAdmins = board.admins && board.admins.some(a => String(a) === adminId);
+    if (!isInAdmins) {
+      return res.status(400).json({ message: "Người này không phải admin" });
+    }
+    
+    // Xóa khỏi admins
+    const updatedBoard = await Board.findOneAndUpdate(
+      { _id: boardId },
+      { $pull: { admins: adminId } },
+      { new: true }
+    ).populate('owner', 'username email avatar')
+     .populate('members', 'username email avatar')
+     .populate('admins', 'username email avatar');
+    
+    return res.json(updatedBoard);
+  } catch (err) {
+    console.error('Error in removeAdmin:', err);
     return res.status(500).json({ message: err.message });
   }
 };

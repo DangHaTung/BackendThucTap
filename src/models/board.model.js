@@ -4,6 +4,7 @@ const boardSchema = new mongoose.Schema({
     title: {type: String, default: "New Board"},
     owner: { type: mongoose.Schema.Types.ObjectId, ref: 'User'},
     members: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User'}],
+    admins: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User'}], // Admins của board
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now }
 },{ 

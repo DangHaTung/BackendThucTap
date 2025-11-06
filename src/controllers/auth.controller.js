@@ -94,12 +94,30 @@ export const me = async (req, res) => {
 // ==================== UPDATE ME ====================
 export const updateMe = async (req, res) => {
   try {
-    const { username, avatar, password } = req.body;
+    const { username, avatar, password, currentPassword } = req.body;
     const updates = {};
     if (username !== undefined) updates.username = username;
     if (avatar !== undefined) updates.avatar = avatar;
 
     if (password) {
+      // Nếu có thay đổi mật khẩu, cần kiểm tra mật khẩu hiện tại
+      if (!currentPassword) {
+        return res.status(400).json({ message: "Vui lòng nhập mật khẩu hiện tại để thay đổi mật khẩu" });
+      }
+      
+      // Lấy user với password để kiểm tra
+      const user = await User.findById(req.user.id).select("+password");
+      if (!user) {
+        return res.status(404).json({ message: "Không tìm thấy người dùng" });
+      }
+      
+      // Kiểm tra mật khẩu hiện tại
+      const isCurrentPasswordValid = await bcrypt.compare(currentPassword, user.password);
+      if (!isCurrentPasswordValid) {
+        return res.status(400).json({ message: "Mật khẩu hiện tại không đúng" });
+      }
+      
+      // Hash mật khẩu mới
       const hashPassword = await bcrypt.hash(password, 10);
       updates.password = hashPassword;
     }

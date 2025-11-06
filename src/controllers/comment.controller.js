@@ -1,4 +1,5 @@
 import Comment from "../models/comment.model.js";
+import { logCardActivity } from "./activity.controller.js";
 
 export const getComments = async (req, res) => {
   try {
@@ -18,20 +19,22 @@ export const createComment = async (req, res) => {
     const { cardId } = req.params;
     const { text } = req.body;
     
-    console.log('Creating comment:', { userId, cardId, text });
     
     if (!text) return res.status(400).json({ message: "Thiếu nội dung bình luận" });
     
     const comment = await Comment.create({ cardId, author: userId, text });
-    console.log('Comment created:', comment);
     
     const populatedComment = await Comment.findById(comment._id).populate('author', 'username email');
-    console.log('Comment populated:', populatedComment);
     
-    // Emit Socket.IO event
+    // Log activity
     const io = req.app.get('io');
+    await logCardActivity('comment_added', cardId, userId, {
+      commentId: comment._id,
+      commentText: text
+    }, io);
+    
+    // Emit Socket.IO event to all clients in the card room (including sender)
     if (io) {
-      console.log('Emitting Socket.IO event for card:', cardId);
       io.to(`card-${cardId}`).emit('comment-added', {
         comment: populatedComment,
         user: {
@@ -39,13 +42,10 @@ export const createComment = async (req, res) => {
           username: req.user.username
         }
       });
-    } else {
-      console.error('Socket.IO not available');
     }
     
     return res.status(201).json(populatedComment);
   } catch (err) {
-    console.error('Error creating comment:', err);
     return res.status(500).json({ message: err.message });
   }
 };
@@ -61,8 +61,14 @@ export const updateComment = async (req, res) => {
     ).populate('author', 'username email');
     if (!comment) return res.status(404).json({ message: "Không tìm thấy hoặc không có quyền" });
     
-    // Emit Socket.IO event
+    // Log activity
     const io = req.app.get('io');
+    await logCardActivity('comment_updated', comment.cardId, userId, {
+      commentId: comment._id,
+      commentText: req.body.text
+    }, io);
+    
+    // Emit Socket.IO event to all clients in the card room (including sender)
     if (io) {
       io.to(`card-${comment.cardId}`).emit('comment-updated', {
         comment: comment,
@@ -93,8 +99,14 @@ export const deleteComment = async (req, res) => {
     const removed = await Comment.findOneAndDelete({ _id: commentId, author: userId });
     if (!removed) return res.status(404).json({ message: "Không tìm thấy hoặc không có quyền" });
     
-    // Emit Socket.IO event
+    // Log activity
     const io = req.app.get('io');
+    await logCardActivity('comment_deleted', commentToDelete.cardId, userId, {
+      commentId: commentId,
+      commentText: commentToDelete.text
+    }, io);
+    
+    // Emit Socket.IO event to all clients in the card room (including sender)
     if (io) {
       io.to(`card-${commentToDelete.cardId}`).emit('comment-deleted', {
         commentId: commentId,

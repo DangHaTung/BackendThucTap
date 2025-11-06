@@ -8,6 +8,8 @@ import boardRouter from './routers/board.router.js'
 import listRouter from './routers/list.router.js'
 import cardRouter from './routers/card.router.js'
 import commentRouter from './routers/comment.router.js'
+import checklistRouter from './routers/checklist.router.js'
+import activityRouter from './routers/activity.router.js'
 import setupSocketIO from './socket/socket.js'
 
 dotenv.config()
@@ -28,6 +30,8 @@ app.use("/api", boardRouter)
 app.use("/api", listRouter)
 app.use("/api", cardRouter)
 app.use("/api", commentRouter)
+app.use("/api", checklistRouter)
+app.use("/api", activityRouter)
 
 // Setup Socket.IO
 const io = setupSocketIO(server)
@@ -39,12 +43,10 @@ app.set('io', io)
 mongoose
   .connect(process.env.MONGO_URI)
   .then(() => {
-    console.log('Kết nối MongoDB thành công')
     const PORT = process.env.PORT || 3000
     server.listen(PORT, () => {
-      console.log(`Server đang chạy tại http://localhost:${PORT}`)
+      console.log(`Server đang được chạy tại Cổng: ${PORT}`)
     })
   })
   .catch((err) => {
-    console.error('Lỗi MongoDB:', err)
   })
